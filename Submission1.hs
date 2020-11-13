@@ -148,7 +148,16 @@ knapsack'' wvs c = table ! c
     table = tabulate (0,c) mknapsack
 
     mknapsack :: weight -> (value, [name])
-    mknapsack c = undefined
+    mknapsack c
+      | null allItems = (0, [])
+      | otherwise     = maximumBy compareValue allItems
+      where
+        allItems = [(v + v', (n : ns)) | (n,w,v) <- wvs, w <= c, let (v', ns) = table ! (c - w)]
+        compareValue :: (value, a) -> (value, a) -> Ordering
+        compareValue (v,_) (v',_)
+          | v < v'   = LT
+          | v > v'   = GT
+          |otherwise = EQ
 
 bknapsack
   :: forall name weight value
