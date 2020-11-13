@@ -153,17 +153,31 @@ knapsack'' wvs c = table ! c
       | otherwise     = maximumBy compareValue allItems
       where
         allItems = [(v + v', (n : ns)) | (n,w,v) <- wvs, w <= c, let (v', ns) = table ! (c - w)]
-        compareValue :: (value, a) -> (value, a) -> Ordering
-        compareValue (v,_) (v',_)
-          | v < v'   = LT
-          | v > v'   = GT
-          |otherwise = EQ
+
+compareValue :: Ord a => (a, b) -> (a, b) -> Ordering
+compareValue (v,_) (v',_)
+  | v < v'   = LT
+  | v > v'   = GT
+  |otherwise = EQ
 
 bknapsack
   :: forall name weight value
   . (Ord weight, Num weight, Ord value, Num value)
   => [(name, weight, value)] -> weight -> (value, [name])
-bknapsack = undefined
+bknapsack wvs c
+  | null wvs  = (0, [])
+  | null vns  = (0, [])
+  | otherwise = maximumBy compareValue vns
+    where
+      vns = listSolutions wvs c
+      listSolutions :: [(name, weight, value)] -> weight -> [(value, [name])]
+      listSolutions [] _ = []
+      listSolutions ((n,w,v):wvs) c
+        | w <= c    = (v + v', (n : ns)) : vns
+        | otherwise = vns
+        where
+          (v', ns) = bknapsack wvs (c - w)
+          vns = listSolutions wvs c
 
 maxBy :: Ord b => (a -> b) -> a -> a -> a
 maxBy f x y = case compare (f x) (f y) of
