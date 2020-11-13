@@ -136,7 +136,7 @@ knapsack' wvs c = table ! c
     table = tabulate (0,c) mknapsack
 
     mknapsack :: weight -> value
-    mknapsack c = undefined
+    mknapsack c = maximum 0 [v + table ! (c - w)| (_,w,v) <- wvs, w <= c]
 
 knapsack''
   :: forall name weight value
@@ -168,7 +168,7 @@ bknapsack' :: forall name weight value .
 bknapsack' = undefined
 
 bknapsack'' :: forall name weight value .
-  (Ord name, Ix weight, Ord weight, Num weight, 
+  (Ord name, Ix weight, Ord weight, Num weight,
     Ord value, Num value) =>
   [(name, weight, value)] -> weight -> (value, [name])
 bknapsack'' = undefined
@@ -262,7 +262,7 @@ eq cmp x y = cmp x y == EQ
 class PQueue pqueue where
   toPQueue   :: (a -> a -> Ordering) -> [a] -> pqueue a
   toPQueue cmp xs = foldr insert (empty cmp) xs
- 
+
   fromPQueue :: pqueue a -> [a]
   fromPQueue = unfoldr unqueue
       where
@@ -522,7 +522,7 @@ deriving instance Generic PlanetId
 deriving instance Generic WormholeId
 deriving instance Generic Ships
 deriving instance Generic (Path a)
- 
+
 instance NFData PlanetId
 instance NFData Order
 instance NFData WormholeId
@@ -536,5 +536,5 @@ deriving instance Generic (Heap a)
 instance NFData a => NFData (Heap a)
 deriving instance Generic (Tree a)
 instance NFData a => NFData (Tree a)
- 
+
 deriving instance (Show a, Show b) => Show (AdjList a b)
