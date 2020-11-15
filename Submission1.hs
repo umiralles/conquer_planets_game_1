@@ -32,6 +32,9 @@ import qualified Data.Map as M
 import qualified Data.Binary as B
 import           GHC.Generics
 
+-- Added Imports --
+import Data.Bits
+
 data Player = Player1 | Player2
 
 data Planet = Planet Owner Ships Growth
@@ -156,9 +159,9 @@ knapsack'' wvs c = table ! c
 
 compareValue :: Ord a => (a, b) -> (a, b) -> Ordering
 compareValue (v,_) (v',_)
-  | v < v'   = LT
-  | v > v'   = GT
-  |otherwise = EQ
+  | v < v'    = LT
+  | v > v'    = GT
+  | otherwise = EQ
 
 bknapsack
   :: forall name weight value
@@ -172,12 +175,12 @@ bknapsack wvs c
       vns = listSolutions wvs c
       listSolutions :: [(name, weight, value)] -> weight -> [(value, [name])]
       listSolutions [] _ = []
-      listSolutions ((n,w,v):wvs) c
+      listSolutions ((n, w, v) : wvs) c
         | w <= c    = (v + v', (n : ns)) : vns
         | otherwise = vns
         where
           (v', ns) = bknapsack wvs (c - w)
-          vns = listSolutions wvs c
+          vns      = listSolutions wvs c
 
 maxBy :: Ord b => (a -> b) -> a -> a -> a
 maxBy f x y = case compare (f x) (f y) of
@@ -188,13 +191,56 @@ bknapsack' :: forall name weight value .
   (Ord weight, Num weight, Ord value, Num value) =>
   [(name, weight, value)] -> Int ->
   weight -> (value, [name])
-bknapsack' = undefined
+bknapsack' wvs len
+  = bknapHelper 0 len
+    where
+      bknapHelper :: Int -> Int -> weight -> (value, [name])
+      bknapHelper code len' c
+        | len' == 0 = (0, [])
+        | null vns  = (0, [])
+        | otherwise = maximumBy compareValue vns
+          where
+            vns = listSolutions (len - 1) c
+            listSolutions :: Int -> weight -> [(value, [name])]
+            listSolutions i c
+              | i == -1                               = []
+              | w <= c && (code .&. (shift 1 i)) == 0 = (v + v', (n : ns)) : vns
+              | otherwise                             = vns
+                where
+                  (n, w, v) = wvs !! i
+                  (v', ns)  = bknapHelper ((shift 1 i) + code) (len' - 1) (c - w)
+                  vns       = listSolutions (i - 1) c
 
 bknapsack'' :: forall name weight value .
   (Ord name, Ix weight, Ord weight, Num weight,
     Ord value, Num value) =>
   [(name, weight, value)] -> weight -> (value, [name])
-bknapsack'' = undefined
+bknapsack'' wvs c
+  = bknapHelper (0, c)
+    where
+      len     = length wvs
+      maxCode = (shift 1 len) - 1
+
+      table :: Array (Int, weight) (value, [name])
+      table = tabulate ((maxCode, 0), (0, c)) bknapHelper
+
+      bknapHelper :: (Int, weight) -> (value, [name])
+      bknapHelper (code, c)
+        | code == maxCode = (0, [])
+        | null vns        = (0, [])
+        | otherwise       = maximumBy compareValue vns
+          where
+            vns = listSolutions (len - 1) c
+
+            listSolutions :: Int -> weight -> [(value, [name])]
+            listSolutions i c
+              | i == -1                               = []
+              | w <= c && (code .&. (shift 1 i)) == 0 = (v + v', (n : ns)) : vns
+              | otherwise                             = vns
+                where
+                  (n, w, v) = wvs !! i
+                  (v', ns)  = table ! ((shift 1 i) + code, (c - w))
+                  vns       = listSolutions (i - 1) c
 
 optimise :: GameState -> Source -> (Growth, [PlanetId])
 optimise st s@(Source p)
