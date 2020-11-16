@@ -188,59 +188,79 @@ maxBy f x y = case compare (f x) (f y) of
     _  -> y
 
 bknapsack' :: forall name weight value .
-  (Ord weight, Num weight, Ord value, Num value) =>
-  [(name, weight, value)] -> Int ->
-  weight -> (value, [name])
-bknapsack' wvs len
-  = bknapHelper 0 len
+  (Ord name, Ix weight, Ord weight, Num weight,
+    Ord value, Num value) =>
+  [(name, weight, value)] -> Int -> weight -> (value, [name])
+bknapsack' wvs len c
+  | len <= 0  = (0, [])
+  | otherwise = bknapHelper (len - 1) c
     where
-      bknapHelper :: Int -> Int -> weight -> (value, [name])
-      bknapHelper code len' c
-        | len' == 0 = (0, [])
-        | null vns  = (0, [])
-        | otherwise = maximumBy compareValue vns
+      bknapHelper :: Int -> weight -> (value, [name])
+      bknapHelper 0 c
+        | w > c     = (0, [])
+        | otherwise = (v, [n])
           where
-            vns = listSolutions (len - 1) c
-            listSolutions :: Int -> weight -> [(value, [name])]
-            listSolutions i c
-              | i == -1                               = []
-              | w <= c && (code .&. (shift 1 i)) == 0 = (v + v', (n : ns)) : vns
-              | otherwise                             = vns
-                where
-                  (n, w, v) = wvs !! i
-                  (v', ns)  = bknapHelper ((shift 1 i) + code) (len' - 1) (c - w)
-                  vns       = listSolutions (i - 1) c
+            (n, w, v) = wvs !! 0
+      bknapHelper i c
+        | w > c         = vn
+        | v + v' >= v'' = (v + v', n : ns')
+        | otherwise     = vn
+          where
+            (n, w, v)   = wvs !! i
+            (v', ns')   = bknapHelper (i - 1) (c - w)
+            vn@(v'', _) = bknapHelper (i - 1) c
+
+-- # This is an old version using encoding of a list #
+-- bknapsack' :: forall name weight value .
+--   (Ord weight, Num weight, Ord value, Num value) =>
+--   [(name, weight, value)] -> Int ->
+--   weight -> (value, [name])
+-- bknapsack' wvs len
+--   = bknapHelper 0 len
+--     where
+--       bknapHelper :: Int -> Int -> weight -> (value, [name])
+--       bknapHelper code len' c
+--         | len' == 0 = (0, [])
+--         | null vns  = (0, [])
+--         | otherwise = maximumBy compareValue vns
+--           where
+--             vns = listSolutions (len - 1) c
+--             listSolutions :: Int -> weight -> [(value, [name])]
+--             listSolutions i c
+--               | i == -1                               = []
+--               | w <= c && (code .&. (shift 1 i)) == 0 = (v + v', (n : ns)) : vns
+--               | otherwise                             = vns
+--                 where
+--                   (n, w, v) = wvs !! i
+--                   (v', ns)  = bknapHelper ((shift 1 i) + code) (len' - 1) (c - w)
+--                   vns       = listSolutions (i - 1) c
 
 bknapsack'' :: forall name weight value .
   (Ord name, Ix weight, Ord weight, Num weight,
     Ord value, Num value) =>
   [(name, weight, value)] -> weight -> (value, [name])
 bknapsack'' wvs c
-  = bknapHelper (0, c)
+  = table ! (len - 1, c)
     where
-      len     = length wvs
-      maxCode = (shift 1 len) - 1
+      len = length wvs
 
       table :: Array (Int, weight) (value, [name])
-      table = tabulate ((maxCode, 0), (0, c)) bknapHelper
+      table = tabulate ((0, 0), (len - 1, c)) bknapHelper
 
       bknapHelper :: (Int, weight) -> (value, [name])
-      bknapHelper (code, c)
-        | code == maxCode = (0, [])
-        | null vns        = (0, [])
-        | otherwise       = maximumBy compareValue vns
+      bknapHelper (0, c)
+        | w > c     = (0, [])
+        | otherwise = (v, [n])
           where
-            vns = listSolutions (len - 1) c
-
-            listSolutions :: Int -> weight -> [(value, [name])]
-            listSolutions i c
-              | i == -1                               = []
-              | w <= c && (code .&. (shift 1 i)) == 0 = (v + v', (n : ns)) : vns
-              | otherwise                             = vns
-                where
-                  (n, w, v) = wvs !! i
-                  (v', ns)  = table ! ((shift 1 i) + code, (c - w))
-                  vns       = listSolutions (i - 1) c
+            (n, w, v) = wvs !! 0
+      bknapHelper (i, c)
+        | w > c         = vn
+        | v + v' >= v'' = (v + v', n : ns')
+        | otherwise     = vn
+          where
+            (n, w, v)   = wvs !! i
+            (v', ns')   = table ! ((i - 1), (c - w))
+            vn@(v'', _) = table ! ((i - 1), c)
 
 optimise :: GameState -> Source -> (Growth, [PlanetId])
 optimise st s@(Source p)
