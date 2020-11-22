@@ -463,26 +463,39 @@ mergeHeap (Heap cmp l) (Heap _ r) = Heap cmp (mergeTree cmp l r)
 
 mergeTree
   :: (a -> a -> Ordering) -> Tree a -> Tree a -> Tree a
-mergeTree cmp l r = undefined
+mergeTree _ Nil r = r
+mergeTree _ l Nil = l
+mergeTree cmp l@(Node _ a x b) r@(Node _ c y d)
+ | cmp x y == LT  = balanceHelper (node a x (mergeTree cmp b r))
+ | otherwise      = balanceHelper (node c y (mergeTree cmp d l))
+  where
+    balanceHelper :: Tree a -> Tree a
+    balanceHelper Nil = Nil
+    balanceHelper t@(Node _ a x b)
+      | rankTree a < rankTree b = node b x a
+      | otherwise               = t
 
 instance PQueue Heap where
   priority :: Heap a -> (a -> a -> Ordering)
-  priority = undefined
+  priority (Heap cmp _) = cmp
 
   empty :: (a -> a -> Ordering) -> Heap a
-  empty p = undefined
+  empty cmp = Heap cmp Nil
 
   isEmpty :: Heap a -> Bool
-  isEmpty = undefined
+  isEmpty (Heap _ Nil) = True
+  isEmpty _            = False
 
   insert :: a -> Heap a -> Heap a
-  insert = undefined
+  insert x (Heap cmp t) = Heap cmp (mergeTree cmp (node Nil x Nil) t)
 
   extract :: Heap a -> a
-  extract = undefined
+  extract (Heap _ Nil)            = error "extract: Empty heap"
+  extract (Heap _ (Node _ _ x _)) = x
 
   discard :: Heap a -> Heap a
-  discard = undefined
+  discard (Heap _ Nil)              = error "discard: Empty heap"
+  discard (Heap cmp (Node _ l _ r)) = Heap cmp (mergeTree cmp l r)
 
 shortestPaths' :: forall g e v . Graph g e v => g -> v -> [Path e]
 shortestPaths' g v = dijkstra g (vertices g \\ [v]) ps
