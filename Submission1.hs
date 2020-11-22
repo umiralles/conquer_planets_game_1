@@ -32,9 +32,6 @@ import qualified Data.Map as M
 import qualified Data.Binary as B
 import           GHC.Generics
 
--- Added Imports --
-import Data.Bits
-
 data Player = Player1 | Player2
 
 data Planet = Planet Owner Ships Growth
@@ -434,9 +431,9 @@ dijkstra g us ps
   | isEmpty ps  = []
   | t `elem` us =
       let us' :: [v]
-          us' = undefined
+          us' = [ u | u <- us, u /= t ]
           ps'' :: pqueue (Path e)
-          ps'' = undefined
+          ps'' = foldr (insert . (extend p)) ps (edgesFrom g t)
       in p : dijkstra g us' ps''
   | otherwise  = dijkstra g us ps'
   where
