@@ -598,7 +598,6 @@ instance Show WormholeId where
 instance Read WormholeId where
   readsPrec = coerce (readsPrec @Int)
 
-deriving instance Eq e   => Eq (Path e)
 deriving instance Read e => Read (Path e)
 deriving instance Show e => Show (Path e)
 instance Show a => Show (PList a) where

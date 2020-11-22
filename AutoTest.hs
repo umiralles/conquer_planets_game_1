@@ -39,14 +39,14 @@ import System.IO
 main :: IO ()
 main = runTests $ do
   testFromFile "Knapsack' tests" (uncurry (knapsack' @String @Int @Int)) (==) "tests/knapsackTests.txt"
-  testFromFile "Knapsack'' tests" (uncurry (knapsack'' @String @Int @Int)) ((==) `on` fmap sort) "tests/knapsackTests2.txt"
-  testFromFile "Bounded knapsack tests" (uncurry (bknapsack @String @Int @Int)) ((==) `on` fmap sort) "tests/bknapsackTests.txt"
-  testFromFile "Bounded knapsack' tests" (uncurry3 (bknapsack' @String @Int @Int)) ((==) `on` fmap sort) "tests/bknapsackTests2.txt"
-  testFromFile "Bounded knapsack'' tests" (uncurry (bknapsack'' @String @Int @Int)) ((==) `on` fmap sort) "tests/bknapsackTests3.txt"
-  testFromFile "Dijkstra tests" (uncurry (shortestPaths @[(String, String, Integer)])) ((==) `on` sortBy cmpPath) "tests/dijkstra.txt"
+  testFromFile "Knapsack'' tests" (uncurry (knapsack'' @String @Int @Int)) ((==) `on` fst) "tests/knapsackTests2.txt"
+  testFromFile "Bounded knapsack tests" (uncurry (bknapsack @String @Int @Int)) ((==) `on` fst) "tests/bknapsackTests.txt"
+  testFromFile "Bounded knapsack' tests" (uncurry3 (bknapsack' @String @Int @Int)) ((==) `on` fst) "tests/bknapsackTests2.txt"
+  testFromFile "Bounded knapsack'' tests" (uncurry (bknapsack'' @String @Int @Int)) ((==) `on` fst) "tests/bknapsackTests3.txt"
+  testFromFile "Dijkstra tests" (uncurry (shortestPaths @[(String, String, Integer)])) ((==) `on` sort . map pathToTuple) "tests/dijkstra.txt"
   test "insert tests" (fromPQueue @Heap . uncurry toPQueue) (==) insertTests
   test "insert rank tests" (rankHeap . uncurry toPQueue) (==) insertRankTests
-  testFromFile "Dijkstra (heap) tests" (uncurry (shortestPaths' @[(String, String, Integer)])) ((==) `on` sortBy cmpPath) "tests/dijkstra.txt"
+  testFromFile "Dijkstra (heap) tests" (uncurry (shortestPaths' @[(String, String, Integer)])) ((==) `on` sort . map pathToTuple) "tests/dijkstra.txt"
   testFromFile "Conflict zones tests" (uncurry3 conflictZones) ((==) `on` (\(a, b, c) -> (sort a, sort b, sort c))) "tests/conflictZonesTests.txt"
   test "AdjList vertices tests" vertices ((==) `on` sort) [adjList :=> ["a", "b", "c", "d"]]
   test "AdjList edges tests" edges ((==) `on` sort) [adjList :=> [("a","b",10),("a","c",20),("b","a",5),("b","d",8),("d","b",3),("d","a",4)]]
@@ -57,6 +57,9 @@ main = runTests $ do
 
 uncurry3 :: (a->b->c -> d) -> (a,b,c) -> d
 uncurry3 f ~(a, b, c) = f a b c
+
+pathToTuple :: Path e -> (Weight, [e])
+pathToTuple (Path w es) = (w, es)
 
 instance Show (String -> String -> Ordering) where
   show _ = "<<function>>"
