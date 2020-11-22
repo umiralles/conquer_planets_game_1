@@ -506,12 +506,16 @@ shortestPaths' g v = dijkstra g (vertices g \\ [v]) ps
 newtype AdjList e v = AdjList [(v, [e])]
 
 instance (Eq e, Edge e v) => Graph (AdjList e v) e v where
-  vertices (AdjList ves)    = undefined
-  edges (AdjList ves)       = undefined
-  edgesFrom (AdjList ves) s = undefined
-  edgesTo   (AdjList ves) t = undefined
-  velem v (AdjList ves)     = undefined
-  eelem e (AdjList ves)     = undefined
+  vertices (AdjList ves)    = map fst ves
+  edges (AdjList ves)       = concatMap snd ves
+  edgesFrom (AdjList ves) s = snd (head (dropWhile (\(v, es) -> v /= s) ves))
+  edgesTo   (AdjList ves) t
+    = concatMap (\(_, es) -> (filter (\e -> (target e) == t) es)) ves
+  velem v (AdjList ves)     = not (null (dropWhile (\(v', _) -> v' /= v) ves))
+  eelem e (AdjList ves)     = not (null (dropWhile (\(_, es) -> eelem' es) ves))
+    where
+      eelem' :: [e] -> Bool
+      eelem' es = null (dropWhile (\e' -> e' /= e) es)
 
 conflictZones :: GameState -> PlanetId -> PlanetId
   -> ([PlanetId], [PlanetId], [PlanetId])
