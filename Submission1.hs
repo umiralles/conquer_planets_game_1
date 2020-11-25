@@ -95,7 +95,7 @@ example1 = GameState planets wormholes fleets where
     , (WormholeId 2, Wormhole homePlanet (Target 3) (Turns 1))
     , (WormholeId 3, Wormhole homePlanet (Target 4) (Turns 1))
     ] where homePlanet = Source 0
-  fleets = []
+  fleets = []  
 
 targetPlanets :: GameState -> Source -> [(PlanetId, Ships, Growth)]
 targetPlanets st s
@@ -517,9 +517,32 @@ instance (Eq e, Edge e v) => Graph (AdjList e v) e v where
       eelem' :: [e] -> Bool
       eelem' es = null (dropWhile (\e' -> e' /= e) es)
 
+--PRE: Graph must be connected
 conflictZones :: GameState -> PlanetId -> PlanetId
   -> ([PlanetId], [PlanetId], [PlanetId])
-conflictZones st p q = undefined
+conflictZones st p q = conflictZones' (0)
+  where
+    ppaths  = shortestPaths' st p
+    qpaths  = shortestPaths' st q
+    planets = vertices st
+    len     = length planets
+    conflictZones' :: Int -> ([PlanetId], [PlanetId], [PlanetId])
+    conflictZones' i
+      | i == len                                      = ([], [], [])
+      | null ppaths' && null qpaths'                  = czs
+      | t == p                                        = (ps, t : qs, pqs)
+      | t == q                                        = (t : ps, qs, pqs)
+      | null qpaths' || not (null ppaths') && pw > qw = (ps, t : qs, pqs)
+      | null ppaths' || pw < qw                       = (t : ps, qs, pqs)
+      | otherwise                                     = (ps, qs, t : pqs)
+      where
+        czs@(ps, qs, pqs) = conflictZones' (i + 1)
+        t = planets !! i
+        ppaths' = (dropWhile (\path -> target path /= t) ppaths)
+        qpaths' = (dropWhile (\path -> target path /= t) qpaths)
+        Path pw _ = head ppaths'
+        Path qw _ = head qpaths'
+
 
 deriving instance Eq Player
 deriving instance Show Player
