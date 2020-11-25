@@ -95,7 +95,7 @@ example1 = GameState planets wormholes fleets where
     , (WormholeId 2, Wormhole homePlanet (Target 3) (Turns 1))
     , (WormholeId 3, Wormhole homePlanet (Target 4) (Turns 1))
     ] where homePlanet = Source 0
-  fleets = []  
+  fleets = []
 
 targetPlanets :: GameState -> Source -> [(PlanetId, Ships, Growth)]
 targetPlanets st s
@@ -423,6 +423,34 @@ example3 = GameState planets wormholes fleets where
     ] where homePlanet = Source 0
   fleets = []
 
+exampleTest :: GameState
+exampleTest = GameState planets wormholes fleets where
+  planets = M.fromList
+    [ (PlanetId 0, Planet ( Neutral) (Ships 0) (Growth 0))
+    , (PlanetId 1, Planet ( Neutral) (Ships 0) (Growth 0))
+    , (PlanetId 2, Planet ( Neutral) (Ships 0) (Growth 0))
+    , (PlanetId 3, Planet ( Neutral) (Ships 0) (Growth 0))
+    , (PlanetId 4, Planet ( Neutral) (Ships 0) (Growth 0))
+    , (PlanetId 5, Planet ( Neutral) (Ships 0) (Growth 0))
+    ]
+  wormholes = M.fromList
+    [ (WormholeId 0, Wormhole (Source 0) (Target 2) (Turns 3))
+    , (WormholeId 1, Wormhole (Source 0) (Target 1) (Turns 4))
+    , (WormholeId 2, Wormhole (Source 3) (Target 5) (Turns 3))
+    , (WormholeId 3, Wormhole (Source 3) (Target 4) (Turns 5))
+    , (WormholeId 4, Wormhole (Source 2) (Target 3) (Turns 5))
+    , (WormholeId 5, Wormhole (Source 3) (Target 2) (Turns 5))
+    , (WormholeId 6, Wormhole (Source 5) (Target 0) (Turns 5))
+    , (WormholeId 7, Wormhole (Source 0) (Target 5) (Turns 5))
+    , (WormholeId 8, Wormhole (Source 3) (Target 2) (Turns 5))
+    , (WormholeId 9, Wormhole (Source 2) (Target 3) (Turns 5))
+    , (WormholeId 10, Wormhole (Source 0) (Target 5) (Turns 5))
+    , (WormholeId 11, Wormhole (Source 5) (Target 9) (Turns 5))
+    , (WormholeId 12, Wormhole (Source 1) (Target 4) (Turns 6))
+    , (WormholeId 13, Wormhole (Source 4) (Target 1) (Turns 6))
+    ]
+  fleets = []
+
 dijkstra :: forall g e v pqueue.
   (Graph g e v, PQueue pqueue) =>
   g -> [v] -> pqueue (Path e) -> [Path e]
@@ -525,23 +553,24 @@ conflictZones st p q = conflictZones' (0)
     ppaths  = shortestPaths' st p
     qpaths  = shortestPaths' st q
     planets = vertices st
-    len     = length planets
     conflictZones' :: Int -> ([PlanetId], [PlanetId], [PlanetId])
     conflictZones' i
-      | i == len                                      = ([], [], [])
-      | null ppaths' && null qpaths'                  = czs
-      | t == p                                        = (ps, t : qs, pqs)
-      | t == q                                        = (t : ps, qs, pqs)
-      | null qpaths' || not (null ppaths') && pw > qw = (ps, t : qs, pqs)
-      | null ppaths' || pw < qw                       = (t : ps, qs, pqs)
-      | otherwise                                     = (ps, qs, t : pqs)
+      | i == length planets                             = ([], [], [])
+      | null ppaths' && null qpaths'                    = czs
+      | null ppaths' || (not (null qpaths') && pw > qw) = (ps, t : qs, pqs)
+      | null qpaths' || pw < qw                         = (t : ps, qs, pqs)
+      | otherwise                                       = (ps, qs, t : pqs)
       where
         czs@(ps, qs, pqs) = conflictZones' (i + 1)
         t = planets !! i
-        ppaths' = (dropWhile (\path -> target path /= t) ppaths)
-        qpaths' = (dropWhile (\path -> target path /= t) qpaths)
+        ppaths' = dropUntilTarget ppaths
+        qpaths' = dropUntilTarget qpaths
         Path pw _ = head ppaths'
         Path qw _ = head qpaths'
+
+        dropUntilTarget :: [Path (WormholeId, Wormhole)]
+          -> [Path (WormholeId, Wormhole)]
+        dropUntilTarget paths = dropWhile (\path -> target path /= t) paths
 
 
 deriving instance Eq Player
