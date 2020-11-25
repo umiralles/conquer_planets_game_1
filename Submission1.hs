@@ -153,7 +153,8 @@ knapsack'' wvs c = table ! c
       | null allItems = (0, [])
       | otherwise     = foldr (maxBy fst) (0, []) allItems
       where
-        allItems = [(v + v', (n : ns)) | (n,w,v) <- wvs, w <= c, let (v', ns) = table ! (c - w)]
+        allItems = [(v + v', (n : ns))
+          | (n,w,v) <- wvs, w <= c, let (v', ns) = table ! (c - w)]
 
 -- ## Used as "maximumBy compareValue _" before using maxBy
 -- compareValue :: Ord a => (a, b) -> (a, b) -> Ordering
@@ -534,10 +535,10 @@ conflictZones st p q = conflictZones' planets
       | otherwise                                       = (ps, qs, t : pqs)
       where
         czs@(ps, qs, pqs) = conflictZones' ts
-        ppaths' = dropUntilTarget ppaths
-        qpaths' = dropUntilTarget qpaths
-        Path pw _ = head ppaths'
-        Path qw _ = head qpaths'
+        ppaths'           = dropUntilTarget ppaths
+        qpaths'           = dropUntilTarget qpaths
+        Path pw _         = head ppaths'
+        Path qw _         = head qpaths'
 
         dropUntilTarget :: [Path (WormholeId, Wormhole)]
           -> [Path (WormholeId, Wormhole)]
