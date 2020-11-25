@@ -19,13 +19,14 @@ module Submission1 where
 import Prelude hiding (maximum)
 
 import Data.Maybe (fromJust)
-import Data.Function (on)
+-- ## Unused but included in skeleton: import Data.Function (on) ##
 
 import Control.DeepSeq
 import Data.Coerce (coerce)
 
 import Data.Array
-import Data.List (unfoldr, maximumBy, nub, sortBy, (\\))
+import Data.List (unfoldr, nub, sortBy, (\\))
+-- ## Used to include maximumBy in skeleton (now unused) ##
 import Data.Map (Map)
 import qualified Data.Map as M
 
@@ -150,15 +151,16 @@ knapsack'' wvs c = table ! c
     mknapsack :: weight -> (value, [name])
     mknapsack c
       | null allItems = (0, [])
-      | otherwise     = maximumBy compareValue allItems
+      | otherwise     = foldr (maxBy fst) (0, []) allItems
       where
         allItems = [(v + v', (n : ns)) | (n,w,v) <- wvs, w <= c, let (v', ns) = table ! (c - w)]
 
-compareValue :: Ord a => (a, b) -> (a, b) -> Ordering
-compareValue (v,_) (v',_)
-  | v < v'    = LT
-  | v > v'    = GT
-  | otherwise = EQ
+-- ## Used as "maximumBy compareValue _" before using maxBy
+-- compareValue :: Ord a => (a, b) -> (a, b) -> Ordering
+-- compareValue (v,_) (v',_)
+--   | v < v'    = LT
+--   | v > v'    = GT
+--   | otherwise = EQ
 
 bknapsack
   :: forall name weight value
@@ -167,7 +169,7 @@ bknapsack
 bknapsack wvs c
   | null wvs  = (0, [])
   | null vns  = (0, [])
-  | otherwise = maximumBy compareValue vns
+  | otherwise = foldr (maxBy fst) (0, []) vns
     where
       vns = listSolutions wvs c
       listSolutions :: [(name, weight, value)] -> weight -> [(value, [name])]
@@ -207,7 +209,7 @@ bknapsack' wvs len c
             (v', ns')   = bknapHelper (i - 1) (c - w)
             vn@(v'', _) = bknapHelper (i - 1) c
 
--- # This is an old version using encoding of a list #
+-- ## This is an old version using encoding of a list ##
 -- bknapsack' :: forall name weight value .
 --   (Ord weight, Num weight, Ord value, Num value) =>
 --   [(name, weight, value)] -> Int ->
@@ -423,34 +425,6 @@ example3 = GameState planets wormholes fleets where
     ] where homePlanet = Source 0
   fleets = []
 
-exampleTest :: GameState
-exampleTest = GameState planets wormholes fleets where
-  planets = M.fromList
-    [ (PlanetId 0, Planet ( Neutral) (Ships 0) (Growth 0))
-    , (PlanetId 1, Planet ( Neutral) (Ships 0) (Growth 0))
-    , (PlanetId 2, Planet ( Neutral) (Ships 0) (Growth 0))
-    , (PlanetId 3, Planet ( Neutral) (Ships 0) (Growth 0))
-    , (PlanetId 4, Planet ( Neutral) (Ships 0) (Growth 0))
-    , (PlanetId 5, Planet ( Neutral) (Ships 0) (Growth 0))
-    ]
-  wormholes = M.fromList
-    [ (WormholeId 0, Wormhole (Source 0) (Target 2) (Turns 3))
-    , (WormholeId 1, Wormhole (Source 0) (Target 1) (Turns 4))
-    , (WormholeId 2, Wormhole (Source 3) (Target 5) (Turns 3))
-    , (WormholeId 3, Wormhole (Source 3) (Target 4) (Turns 5))
-    , (WormholeId 4, Wormhole (Source 2) (Target 3) (Turns 5))
-    , (WormholeId 5, Wormhole (Source 3) (Target 2) (Turns 5))
-    , (WormholeId 6, Wormhole (Source 5) (Target 0) (Turns 5))
-    , (WormholeId 7, Wormhole (Source 0) (Target 5) (Turns 5))
-    , (WormholeId 8, Wormhole (Source 3) (Target 2) (Turns 5))
-    , (WormholeId 9, Wormhole (Source 2) (Target 3) (Turns 5))
-    , (WormholeId 10, Wormhole (Source 0) (Target 5) (Turns 5))
-    , (WormholeId 11, Wormhole (Source 5) (Target 9) (Turns 5))
-    , (WormholeId 12, Wormhole (Source 1) (Target 4) (Turns 6))
-    , (WormholeId 13, Wormhole (Source 4) (Target 1) (Turns 6))
-    ]
-  fleets = []
-
 dijkstra :: forall g e v pqueue.
   (Graph g e v, PQueue pqueue) =>
   g -> [v] -> pqueue (Path e) -> [Path e]
@@ -489,8 +463,7 @@ node l x r
 mergeHeap :: Heap a -> Heap a -> Heap a
 mergeHeap (Heap cmp l) (Heap _ r) = Heap cmp (mergeTree cmp l r)
 
-mergeTree
-  :: (a -> a -> Ordering) -> Tree a -> Tree a -> Tree a
+mergeTree :: (a -> a -> Ordering) -> Tree a -> Tree a -> Tree a
 mergeTree _ Nil r = r
 mergeTree _ l Nil = l
 mergeTree cmp l@(Node _ a x b) r@(Node _ c y d)
@@ -545,24 +518,22 @@ instance (Eq e, Edge e v) => Graph (AdjList e v) e v where
       eelem' :: [e] -> Bool
       eelem' es = null (dropWhile (\e' -> e' /= e) es)
 
---PRE: Graph must be connected
 conflictZones :: GameState -> PlanetId -> PlanetId
   -> ([PlanetId], [PlanetId], [PlanetId])
-conflictZones st p q = conflictZones' (0)
+conflictZones st p q = conflictZones' planets
   where
     ppaths  = shortestPaths' st p
     qpaths  = shortestPaths' st q
     planets = vertices st
-    conflictZones' :: Int -> ([PlanetId], [PlanetId], [PlanetId])
-    conflictZones' i
-      | i == length planets                             = ([], [], [])
+    conflictZones' :: [PlanetId] -> ([PlanetId], [PlanetId], [PlanetId])
+    conflictZones' []                                   = ([], [], [])
+    conflictZones' (t : ts)
       | null ppaths' && null qpaths'                    = czs
       | null ppaths' || (not (null qpaths') && pw > qw) = (ps, t : qs, pqs)
       | null qpaths' || pw < qw                         = (t : ps, qs, pqs)
       | otherwise                                       = (ps, qs, t : pqs)
       where
-        czs@(ps, qs, pqs) = conflictZones' (i + 1)
-        t = planets !! i
+        czs@(ps, qs, pqs) = conflictZones' ts
         ppaths' = dropUntilTarget ppaths
         qpaths' = dropUntilTarget qpaths
         Path pw _ = head ppaths'
